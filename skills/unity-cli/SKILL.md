@@ -13,10 +13,13 @@ The official Unity CLI (`unity`) is a standalone binary (experimental/beta) that
 unity --version   # if missing, PATH may need: export PATH="$HOME/.unity/bin:$PATH"
 ```
 
-Install if absent (macOS/Linux):
+Install if absent:
 
 ```bash
+# macOS / Linux
 curl -fsSL https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.sh | UNITY_CLI_CHANNEL=beta bash
+# Windows (PowerShell)
+$env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex
 ```
 
 `unity upgrade` self-updates (`--changelog` previews, `--target <version>` pins). `unity doctor` prints environment diagnostics. `unity changelog` shows what the installed CLI version supports — the CLI evolves fast (beta releases every few weeks) and ships more commands than the docs pages list, so **treat `unity <cmd> --help` as the authority** for the installed version.
@@ -38,6 +41,8 @@ unity editors default 6000.3.7f1        # set default editor
 unity editors add /Applications/Unity/Hub/Editor/<ver>/Unity.app   # register existing install
 unity install lts                       # install newest LTS (aliases: latest, lts, 6, 2022, ...)
 unity install 6000.3.7f1 -m android --cm   # with modules (+child modules e.g. SDK/NDK)
+unity install 6000.3.7f1 -m android ios --accept-eula --yes   # fully unattended (CI): no prompts
+unity modules list 6000.3.7f1           # module IDs available for a version
 unity install-modules -e 6000.3.7f1 -m ios webgl   # add modules later; -l lists available
 unity uninstall 6000.3.7f1
 unity install-path                      # show/set editor install directory
@@ -125,19 +130,45 @@ unity run . -- -executeMethod ProjectSetup.Setup -quit -nographics
 unity run . --allow-install -- -logFile ./setup.log -quit
 ```
 
-## Live editor scripting (Pipeline package)
+## Live editor & Player scripting (Pipeline package)
 
-The CLI can talk to *running* editor instances once the Unity Pipeline package is installed in the project:
+The `com.unity.pipeline` package (experimental, **requires Unity 6.0 LTS or newer**) turns a *running* editor — or a development Player build — into a local API the CLI can drive. This is the primary way for an agent to observe a live project, act on it, and verify the result without edit/recompile/relaunch cycles.
 
 ```bash
 unity pipeline install                  # add the Pipeline package to a project (pipe = alias)
 unity pipeline list                     # editor instances + Pipeline status
 unity status                            # live state of connected editors (port, project, PID, state)
-unity list                              # commands the connected editor exposes
-unity command <name> [args...]          # execute a command on a connected editor (aliases: cmd, request)
+unity command                           # no args: list commands the connected editor exposes (self-describing)
+unity command <name> [args...]          # execute a command (aliases: cmd, request); --timeout <s>, default 30
+unity command --runtime <player-exec>   # target a running dev Player build instead of the editor
 ```
 
-Newer CLI builds also have `unity eval '<C# expr>'` to evaluate expressions against a connected editor — check `unity --help`.
+**`eval` — live C# REPL** (a Pipeline-registered command, so it won't appear in `unity --help`):
+
+```bash
+unity command eval "return Application.version;"
+unity command eval "return UnityEditor.EditorApplication.isPlaying;"
+unity command eval_file path/to/script.cs
+```
+
+Compiled with Roslyn, runs on the editor's main thread with full engine/editor API access, answers in milliseconds — use it to inspect scenes, toggle components, enter Play mode, and verify fixes live. Gated behind a security token; the Player runtime API is localhost-only, off by default, and for dev/QA builds only.
+
+**Custom commands**: any static method in the project becomes a CLI command via attributes — no registration step:
+
+```csharp
+using Unity.Pipeline.Commands;
+
+public static class MyPipelineCommands
+{
+    [CliCommand("greet", "Log a greeting and return its length")]
+    public static int Greet([CliArg("name", "Who to greet", Required = true)] string name)
+    {
+        UnityEngine.Debug.Log($"Hello, {name}!");
+        return name.Length;
+    }
+}
+// then: unity command greet --name World
+```
 
 ## CI / auth / licensing
 
