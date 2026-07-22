@@ -1,0 +1,15 @@
+{
+  "name": "unity-cli-skill",
+  "description": "Claude Code skills for driving the Unity game engine from the terminal with the official Unity CLI and editor batch mode.",
+  "owner": {
+    "name": "Can Guldogan",
+    "url": "https://github.com/cguldogan"
+  },
+  "plugins": [
+    {
+      "name": "unity-cli",
+      "source": "./",
+      "description": "Drive Unity from the terminal: install/manage editors, create projects, run builds and tests in batch mode via the official Unity CLI, with raw editor batch-mode fallbacks."
+    }
+  ]
+}
