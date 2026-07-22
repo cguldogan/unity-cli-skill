@@ -19,14 +19,15 @@ Install if absent (macOS/Linux):
 curl -fsSL https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.sh | UNITY_CLI_CHANNEL=beta bash
 ```
 
-`unity upgrade` self-updates. `unity doctor` prints environment diagnostics.
+`unity upgrade` self-updates (`--changelog` previews, `--target <version>` pins). `unity doctor` prints environment diagnostics. `unity changelog` shows what the installed CLI version supports — the CLI evolves fast (beta releases every few weeks) and ships more commands than the docs pages list, so **treat `unity <cmd> --help` as the authority** for the installed version.
 
 ## Global flags (work on every command)
 
-- `--format <human|json|tsv|ndjson>` — use `--format json` when parsing output programmatically
+- `--format <human|json|tsv|ndjson>` — use `--format json` when parsing output programmatically. JSON responses use a standard envelope: `{success, command, data, errors, warnings}`. NDJSON streams progress events (with a `phase: download|install` field on installs).
 - `--non-interactive` — disable prompts; always pass this in scripts/CI
 - `--no-banner`, `--quiet`, `--verbose`
 - Exit codes: 0 success, 1 error (details on stderr), 130 user-cancelled
+- `unity completion <bash|zsh|fish|powershell>` prints shell completions
 
 ## Editors
 
@@ -40,6 +41,9 @@ unity install 6000.3.7f1 -m android --cm   # with modules (+child modules e.g. S
 unity install-modules -e 6000.3.7f1 -m ios webgl   # add modules later; -l lists available
 unity uninstall 6000.3.7f1
 unity install-path                      # show/set editor install directory
+unity editors path 6000.3.7f1          # print an editor's install dir (use to locate the binary for raw batch mode)
+unity install lts --dry-run             # preview download without installing
+unity install lts --resume              # resume an interrupted download
 ```
 
 ## Projects
@@ -53,6 +57,8 @@ unity projects require                                 # assert/install the edit
 unity projects upgrade . --editor-version 6000.3.7f1   # migrate project to another editor
 unity open ./MyProject                                 # open in correct editor version (GUI)
 unity open "My Game*"                                  # fuzzy/glob match against Hub registry
+unity projects clone                                   # clone a repo (GitHub/GitLab/VCS) and register its project
+unity projects link / unlink                           # connect project to Unity Cloud or version control
 ```
 
 Older CLI builds may lack `projects new`; then create a project with raw batch mode:
@@ -119,15 +125,34 @@ unity run . -- -executeMethod ProjectSetup.Setup -quit -nographics
 unity run . --allow-install -- -logFile ./setup.log -quit
 ```
 
+## Live editor scripting (Pipeline package)
+
+The CLI can talk to *running* editor instances once the Unity Pipeline package is installed in the project:
+
+```bash
+unity pipeline install                  # add the Pipeline package to a project (pipe = alias)
+unity pipeline list                     # editor instances + Pipeline status
+unity status                            # live state of connected editors (port, project, PID, state)
+unity list                              # commands the connected editor exposes
+unity command <name> [args...]          # execute a command on a connected editor (aliases: cmd, request)
+```
+
+Newer CLI builds also have `unity eval '<C# expr>'` to evaluate expressions against a connected editor — check `unity --help`.
+
+## CI / auth / licensing
+
+- `unity auth login|status|logout` — interactive, browser-based account sign-in
+- **Service accounts for headless CI**: set `UNITY_SERVICE_ACCOUNT_ID` and `UNITY_SERVICE_ACCOUNT_SECRET` env vars — no browser needed
+- `unity license list|status|activate|return` — manage licenses on the machine; `unity license server` for floating license servers
+- `unity cloud status` / `unity cloud org|project` — Unity Cloud organizations and projects
+
 ## Other useful commands
 
-- `unity auth login|status|logout` — Unity account (browser-based)
-- `unity license` — list active licenses
 - `unity templates list` / `templates create <project>` — project templates
-- `unity status` — live state of connected editor instances
 - `unity mcp` — MCP server/client config for Unity Editor
-- `unity logs` — tail Hub log file
+- `unity logs` — tail the CLI/Hub log file
 - `unity shell` — REPL that keeps one warm process for many commands
+- Plugin system: any `unity-<name>` executable on PATH becomes `unity <name>`
 
 ## Raw editor batch mode (fallback)
 
