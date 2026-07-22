@@ -1,7 +1,7 @@
 {
   "name": "unity-cli",
   "description": "Drive Unity from the terminal: install/manage editors, create projects, run builds and tests in batch mode via the official Unity CLI, with raw editor batch-mode fallbacks.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "Can Guldogan",
     "url": "https://github.com/cguldogan"

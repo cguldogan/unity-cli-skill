@@ -153,6 +153,8 @@ unity command eval_file path/to/script.cs
 
 Compiled with Roslyn, runs on the editor's main thread with full engine/editor API access, answers in milliseconds — use it to inspect scenes, toggle components, enter Play mode, and verify fixes live. Gated behind a security token; the Player runtime API is localhost-only, off by default, and for dev/QA builds only.
 
+**Agent workflow**: this layer is designed for AI agents — the recommended loop is observe → act → verify: inspect live state with `eval`, apply a change, run tests or enter Play mode, read the result, decide next step. `eval`'s reach is Unity's entire API surface (rendering, physics, animation, asset database, Editor APIs, plus the project's own code), and registered commands map naturally onto MCP/function-calling tools. Prefer `eval` over edit-recompile-relaunch cycles when querying or tweaking a running instance — milliseconds vs. seconds-to-minutes per check.
+
 **Custom commands**: any static method in the project becomes a CLI command via attributes — no registration step:
 
 ```csharp
